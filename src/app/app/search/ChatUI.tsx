@@ -3,8 +3,10 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import WorkflowDiagram from "./WorkflowDiagram";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ChatUI() {
+  const { currentLanguage } = useLanguage();
   const [query, setQuery] = useState("");
   const [reply, setReply] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -72,10 +74,19 @@ export default function ChatUI() {
     // Detect if this query should show a workflow
     const workflowInfo = detectLegalProcess(query);
 
+    // Prepare the message with language context for the LLM (hidden from user)
+    const languageNames = {
+      en: "English",
+      hi: "Hindi",
+      mr: "Marathi",
+    };
+
+    const messageWithLanguage = `[Language: ${languageNames[currentLanguage]}] ${query}`;
+
     const res = await fetch("http://localhost:3001/api/chat/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: query }),
+      body: JSON.stringify({ message: messageWithLanguage }),
     });
 
     const data = await res.json();
