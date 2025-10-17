@@ -9,8 +9,13 @@ export const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Always send logged-in users to your AI search/chat page
+      return "/app/search";
+    },
+  },
 };
 
-// App Router
-export const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
