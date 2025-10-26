@@ -1,10 +1,108 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap");
 @import "tailwindcss";
+
+@theme {
+  /* Neobrutalism Colors - Updated for Lawly branding */
+  --color-main: hsl(205 100% 50%);
+  --color-main-foreground: hsl(0 0% 7%);
+  --color-accent: hsl(56 100% 70%);
+  --color-accent-foreground: hsl(0 0% 7%);
+  --color-secondary-background: hsl(210 60% 75%);
+  --color-foreground: hsl(0 0% 7%);
+  --color-border: hsl(0 0% 7%);
+  --color-background: hsl(40 85% 95%);
+  --color-overlay: hsl(0 0% 0% / 0.5);
+
+  /* Neobrutalism Border Radius */
+  --radius-base: 10px;
+
+  /* Neobrutalism Font Weight */
+  --font-weight-base: 500;
+  --font-weight-heading: 700;
+
+  /* Neobrutalism Box Shadow */
+  --shadow-x: 4px;
+  --shadow-y: 4px;
+}
+
+@layer utilities {
+  .rounded-base {
+    border-radius: var(--radius-base);
+  }
+
+  .font-base {
+    font-weight: var(--font-weight-base);
+  }
+
+  .font-heading {
+    font-weight: var(--font-weight-heading);
+  }
+
+  .shadow-shadow {
+    box-shadow: var(--shadow-x) var(--shadow-y) 0 0 var(--color-border);
+  }
+
+  .translate-x-boxShadowX {
+    translate: var(--shadow-x) 0;
+  }
+
+  .translate-y-boxShadowY {
+    translate: 0 var(--shadow-y);
+  }
+
+  .translate-x-reverseBoxShadowX {
+    translate: calc(var(--shadow-x) * -1) 0;
+  }
+
+  .translate-y-reverseBoxShadowY {
+    translate: 0 calc(var(--shadow-y) * -1);
+  }
+
+  .bg-main {
+    background-color: var(--color-main);
+  }
+
+  .text-main-foreground {
+    color: var(--color-main-foreground);
+  }
+
+  .bg-secondary-background {
+    background-color: var(--color-secondary-background);
+  }
+
+  .text-foreground {
+    color: var(--color-foreground);
+  }
+
+  .border-border {
+    border-color: var(--color-border);
+  }
+
+  .bg-background {
+    background-color: var(--color-background);
+  }
+
+  .bg-overlay {
+    background-color: var(--color-overlay);
+  }
+
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+
+  .text-accent-foreground {
+    color: var(--color-accent-foreground);
+  }
+}
 
 /* === Custom Theme === */
 body {
-  background-color: #fff1ce;
+  background-color: hsl(40 85% 95%);
   color: #111;
-  font-family: system-ui, sans-serif;
+  font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-weight: 500;
+  font-size: 18px;
 
   /* Noise filter */
   background-image: repeating-radial-gradient(
@@ -15,4 +113,28 @@ body {
     transparent 100%
   );
   background-size: 150px 150px;
+}
+
+/* Font weight definitions */
+strong,
+b {
+  font-weight: 700 !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+}
+
+/* Ensure proper weights for different text elements */
+.prose strong {
+  font-weight: 700 !important;
+}
+
+.prose b {
+  font-weight: 700 !important;
 }
