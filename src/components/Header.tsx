@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -9,8 +10,23 @@ import {
 import SignInButton from "@/components/SignInButton";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import LanguageDropdown from "@/components/LanguageDropdown";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
+  const [fontSize, setFontSize] = useState(18);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`;
+  }, [fontSize]);
+
+  const increaseFontSize = () => {
+    setFontSize((prev) => Math.min(prev + 2, 26)); // Max 26px
+  };
+
+  const decreaseFontSize = () => {
+    setFontSize((prev) => Math.max(prev - 2, 14)); // Min 14px
+  };
+
   return (
     <header className="w-full py-6 px-8 border-b-4 border-border bg-background">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -44,6 +60,26 @@ export default function Header() {
         </div>
         {/* Login Button */}
         <div className="flex items-center gap-3">
+          {/* Font Size Controls */}
+          <div className="flex items-center gap-2  border-border rounded-base p-1">
+            <Button
+              onClick={decreaseFontSize}
+              size="sm"
+              className="h-10 w-10 p-0 text-sm font-bold hover:bg-accent"
+              aria-label="Decrease font size"
+            >
+              A-
+            </Button>
+            <Button
+              onClick={increaseFontSize}
+              size="sm"
+              className="h-10 w-10 p-0 text-base font-bold hover:bg-accent"
+              aria-label="Increase font size"
+            >
+              A+
+            </Button>
+          </div>
+
           <LanguageProvider>
             <LanguageDropdown />
           </LanguageProvider>
