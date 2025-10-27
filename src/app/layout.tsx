@@ -1,5 +1,6 @@
 import { SessionWrapper } from "./session-wrapper";
 import Header from "@/components/Header";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -31,8 +32,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionWrapper>
-          <Header />
-          {children}
+          <LanguageProvider>
+            <Header />
+            {children}
+          </LanguageProvider>
         </SessionWrapper>
       </body>
     </html>

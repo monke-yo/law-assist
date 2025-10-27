@@ -8,7 +8,6 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import SignInButton from "@/components/SignInButton";
-import { LanguageProvider } from "@/contexts/LanguageContext";
 import LanguageDropdown from "@/components/LanguageDropdown";
 import { Button } from "@/components/ui/button";
 
@@ -80,9 +79,7 @@ export default function Header() {
             </Button>
           </div>
 
-          <LanguageProvider>
-            <LanguageDropdown />
-          </LanguageProvider>
+          <LanguageDropdown />
           <SignInButton />
         </div>
       </div>
