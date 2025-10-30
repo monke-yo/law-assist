@@ -17,6 +17,17 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// Type definition for workflow node data
+interface WorkflowNodeData {
+  id: string;
+  label: string;
+  title: string;
+  description: string;
+  completed?: boolean;
+  completedText?: string;
+  onToggle?: (id: string, completed: boolean) => void;
+}
+
 // Custom animated edge component
 function AnimatedEdge({
   id,
@@ -47,16 +58,7 @@ function AnimatedEdge({
 }
 
 // Custom node component with checkbox
-function WorkflowNode({
-  data,
-}: {
-  data: {
-    id: string;
-    label: string;
-    completed?: boolean;
-    onToggle?: (id: string, completed: boolean) => void;
-  };
-}) {
+function WorkflowNode({ data }: { data: WorkflowNodeData }) {
   const [isCompleted, setIsCompleted] = useState(data.completed || false);
 
   const handleToggle = () => {
