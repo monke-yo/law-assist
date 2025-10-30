@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import ChatUI from "./ChatUI";
-import LanguageDropdown from "@/components/LanguageDropdown";
 
 export default function SearchPage() {
   const { data: session, status } = useSession();

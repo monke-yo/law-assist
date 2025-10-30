@@ -15,7 +15,7 @@ import {
   EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Custom animated edge component
 function AnimatedEdge({
@@ -47,7 +47,16 @@ function AnimatedEdge({
 }
 
 // Custom node component with checkbox
-function WorkflowNode({ data }: { data: any }) {
+function WorkflowNode({
+  data,
+}: {
+  data: {
+    id: string;
+    label: string;
+    completed?: boolean;
+    onToggle?: (id: string, completed: boolean) => void;
+  };
+}) {
   const [isCompleted, setIsCompleted] = useState(data.completed || false);
 
   const handleToggle = () => {
@@ -320,7 +329,7 @@ export default function WorkflowDiagram({
 
   const initialNodes: Node[] = useMemo(
     () =>
-      currentWorkflow.steps.map((step, index) => ({
+      currentWorkflow.steps.map((step) => ({
         id: step.id,
         type: "workflow",
         position: step.position,
@@ -340,10 +349,10 @@ export default function WorkflowDiagram({
 
   const initialEdges: Edge[] = useMemo(
     () =>
-      currentWorkflow.steps.slice(0, -1).map((step, index) => ({
-        id: `e${step.id}-${currentWorkflow.steps[index + 1].id}`,
+      currentWorkflow.steps.slice(0, -1).map((step, idx) => ({
+        id: `e${step.id}-${currentWorkflow.steps[idx + 1].id}`,
         source: step.id,
-        target: currentWorkflow.steps[index + 1].id,
+        target: currentWorkflow.steps[idx + 1].id,
         type: "animated",
         animated: true,
         style: { stroke: "#3b82f6", strokeWidth: 2 },
@@ -352,13 +361,13 @@ export default function WorkflowDiagram({
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   // Update workflow when language changes
   React.useEffect(() => {
     const newWorkflow =
       workflows[processType as keyof typeof workflows] || workflows.general;
-    const newNodes = newWorkflow.steps.map((step, index) => ({
+    const newNodes = newWorkflow.steps.map((step) => ({
       id: step.id,
       type: "workflow",
       position: step.position,
@@ -378,6 +387,7 @@ export default function WorkflowDiagram({
     currentLanguage,
     processType,
     completedSteps,
+    workflows,
     handleStepToggle,
     t.completed,
     setNodes,

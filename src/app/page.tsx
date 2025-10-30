@@ -1,13 +1,6 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import TryForFreeButton from "@/components/TryForFreeButton";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
-  // if (session) {
-  //   redirect("/app/search");
-  // }
   return (
     <div className="min-h-screen bg-color-background">
       <main className="relative overflow-hidden">
@@ -136,7 +129,7 @@ export default async function Home() {
                 </div>
                 <p className="text-sm font-heading">Need Legal Help?</p>
                 <p className="text-xs text-foreground/60">
-                  We're here for you!
+                  We&apos;re here for you!
                 </p>
               </div>
             </div>
