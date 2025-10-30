@@ -92,7 +92,7 @@ export default function ChatUI({
 
     const messageWithLanguage = `[Language: ${languageNames[currentLanguage]}] ${query}`;
 
-    const res = await fetch("http://localhost:3001/api/chat/query", {
+    const res = await fetch("/api/chat/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: messageWithLanguage }),
