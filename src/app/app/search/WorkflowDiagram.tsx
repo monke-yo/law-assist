@@ -280,35 +280,38 @@ export default function WorkflowDiagram({
   const t = translations[currentLanguage];
 
   // Define different workflow processes with translations
-  const workflows = {
-    general: {
-      title: t.workflows.general.title,
-      steps: t.workflows.general.steps.map((step, index) => ({
-        id: (index + 1).toString(),
-        title: step.title,
-        description: step.description,
-        position: { x: 50 + index * 150, y: 400 - index * 80 },
-      })),
-    },
-    divorce: {
-      title: t.workflows.divorce.title,
-      steps: t.workflows.divorce.steps.map((step, index) => ({
-        id: (index + 1).toString(),
-        title: step.title,
-        description: step.description,
-        position: { x: 50 + index * 150, y: 400 - index * 80 },
-      })),
-    },
-    contract: {
-      title: t.workflows.contract.title,
-      steps: t.workflows.contract.steps.map((step, index) => ({
-        id: (index + 1).toString(),
-        title: step.title,
-        description: step.description,
-        position: { x: 50 + index * 150, y: 400 - index * 80 },
-      })),
-    },
-  };
+  const workflows = useMemo(
+    () => ({
+      general: {
+        title: t.workflows.general.title,
+        steps: t.workflows.general.steps.map((step, index) => ({
+          id: (index + 1).toString(),
+          title: step.title,
+          description: step.description,
+          position: { x: 50 + index * 150, y: 400 - index * 80 },
+        })),
+      },
+      divorce: {
+        title: t.workflows.divorce.title,
+        steps: t.workflows.divorce.steps.map((step, index) => ({
+          id: (index + 1).toString(),
+          title: step.title,
+          description: step.description,
+          position: { x: 50 + index * 150, y: 400 - index * 80 },
+        })),
+      },
+      contract: {
+        title: t.workflows.contract.title,
+        steps: t.workflows.contract.steps.map((step, index) => ({
+          id: (index + 1).toString(),
+          title: step.title,
+          description: step.description,
+          position: { x: 50 + index * 150, y: 400 - index * 80 },
+        })),
+      },
+    }),
+    [t.workflows]
+  );
 
   const currentWorkflow =
     workflows[processType as keyof typeof workflows] || workflows.general;

@@ -10,7 +10,7 @@ export const authOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async redirect({ url, baseUrl }) {
+    async redirect() {
       // Always send logged-in users to your AI search/chat page
       return "/app/search";
     },

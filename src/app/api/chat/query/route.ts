@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Build context from retrieved documents
     const context = similarDocs
-      .map((doc: any, idx: number) => {
+      .map((doc: { content: string; similarity: number }, idx: number) => {
         return `Document ${idx + 1} (Similarity: ${(
           doc.similarity * 100
         ).toFixed(1)}%):\n${doc.content}`;

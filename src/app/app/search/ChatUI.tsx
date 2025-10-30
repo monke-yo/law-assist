@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import WorkflowDiagram from "./WorkflowDiagram";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -147,7 +147,8 @@ export default function ChatUI({
               onKeyDown={async (e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  await handleSubmit(e as any);
+                  const formEvent = e as unknown as React.FormEvent;
+                  await handleSubmit(formEvent);
                 }
               }}
             />
