@@ -8,12 +8,14 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 // Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
 );
 
 // Function to generate embeddings using Gemini
 async function generateEmbedding(text: string) {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const model = genAI.getGenerativeModel({
+    model: "models/gemini-embedding-001",
+  });
   const result = await model.embedContent(text);
   return result.embedding.values;
 }
@@ -21,7 +23,7 @@ async function generateEmbedding(text: string) {
 // Function to search similar documents in Supabase
 async function searchSimilarDocuments(
   queryEmbedding: number[],
-  matchCount: number = 5
+  matchCount: number = 5,
 ) {
   const { data, error } = await supabase.rpc("match_documents", {
     query_embedding: queryEmbedding,
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!message) {
       return NextResponse.json(
         { ok: false, error: "Message is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,8 +81,8 @@ ${
   message.includes("[Language: Hindi]")
     ? "Respond in Hindi."
     : message.includes("[Language: Marathi]")
-    ? "Respond in Marathi."
-    : "Respond in English."
+      ? "Respond in Marathi."
+      : "Respond in English."
 }
 
 RETRIEVED LEGAL DOCUMENTS:
@@ -109,7 +111,7 @@ Based on the legal documents provided above, please answer the user's question:`
         ok: false,
         error: error instanceof Error ? error.message : "An error occurred",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
