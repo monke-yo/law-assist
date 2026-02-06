@@ -93,32 +93,36 @@ function WorkflowNode({ data }: { data: WorkflowNodeData }) {
 
   return (
     <div
-      className={`px-4 py-3 shadow-lg rounded-lg border-2 transition-all duration-300 ${
+      className={`px-3 py-2.5 shadow-md rounded-md border-2 transition-all duration-300 max-w-[280px] min-w-[260px] ${
         isCompleted
           ? "bg-green-100 border-green-500 text-green-800"
           : data.disabled
-          ? "bg-gray-100 border-gray-300 text-gray-400 opacity-60"
-          : "bg-white border-gray-300 text-gray-800"
+            ? "bg-gray-100 border-gray-300 text-gray-400 opacity-60"
+            : "bg-white border-gray-300 text-gray-800"
       }`}
     >
       <Handle type="target" position={Position.Left} />
-      <div className="flex items-center space-x-2">
+      <div className="flex items-start space-x-2">
         <input
           type="checkbox"
           checked={isCompleted}
           onChange={handleToggle}
           disabled={data.disabled}
-          className={`w-4 h-4 text-blue-600 rounded focus:ring-blue-500 ${
+          className={`w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600 rounded focus:ring-blue-500 ${
             data.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
           }`}
         />
-        <div>
-          <div className="font-semibold text-sm">{data.title}</div>
-          <div className="text-xs opacity-75">{data.description}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm leading-snug break-words">
+            {data.title}
+          </div>
+          <div className="text-xs opacity-75 leading-snug mt-1 break-words">
+            {data.description}
+          </div>
         </div>
       </div>
       {isCompleted && (
-        <div className="mt-2 text-xs text-green-600">
+        <div className="mt-1.5 text-xs text-green-600">
           ✓ {data.completedText}
         </div>
       )}
@@ -1334,8 +1338,20 @@ const translations = {
   },
 };
 
+interface WorkflowData {
+  title: string;
+  steps: {
+    id: string;
+    title: string;
+    description: string;
+    phase: number;
+    parallel: number;
+  }[];
+}
+
 interface WorkflowDiagramProps {
   processType?: string;
+  workflowData?: WorkflowData;
 }
 
 const nodeTypes = {
@@ -1348,6 +1364,7 @@ const edgeTypes = {
 
 export default function WorkflowDiagram({
   processType = "general",
+  workflowData,
 }: WorkflowDiagramProps) {
   const { currentLanguage } = useLanguage();
   const t = translations[currentLanguage];
@@ -1357,10 +1374,10 @@ export default function WorkflowDiagram({
     const calculatePosition = (
       phase: number,
       parallel: number,
-      totalParallel: number
+      totalParallel: number,
     ) => {
-      const phaseSpacing = 250;
-      const parallelSpacing = 100;
+      const phaseSpacing = 350;
+      const parallelSpacing = 320;
       const baseY = 50;
 
       // Calculate vertical offset to center parallel nodes
@@ -1368,18 +1385,21 @@ export default function WorkflowDiagram({
         totalParallel > 1 ? ((totalParallel - 1) * parallelSpacing) / 2 : 0;
 
       return {
-        x: phase * phaseSpacing,
+        x: (phase - 1) * phaseSpacing,
         y: baseY + parallel * parallelSpacing - verticalOffset,
       };
     };
 
     const processWorkflow = (steps: WorkflowStep[]) => {
       // Group steps by phase to calculate total parallel nodes
-      const phaseGroups = steps.reduce((acc, step) => {
-        if (!acc[step.phase]) acc[step.phase] = [];
-        acc[step.phase].push(step);
-        return acc;
-      }, {} as Record<number, WorkflowStep[]>);
+      const phaseGroups = steps.reduce(
+        (acc, step) => {
+          if (!acc[step.phase]) acc[step.phase] = [];
+          acc[step.phase].push(step);
+          return acc;
+        },
+        {} as Record<number, WorkflowStep[]>,
+      );
 
       return steps.map((step) => {
         const totalParallelInPhase = phaseGroups[step.phase].length;
@@ -1392,11 +1412,21 @@ export default function WorkflowDiagram({
           position: calculatePosition(
             step.phase,
             step.parallel,
-            totalParallelInPhase
+            totalParallelInPhase,
           ),
         };
       });
     };
+
+    // If dynamic workflow data is provided, use it
+    if (workflowData) {
+      return {
+        dynamic: {
+          title: workflowData.title,
+          steps: processWorkflow(workflowData.steps),
+        },
+      };
+    }
 
     return {
       general: {
@@ -1412,10 +1442,16 @@ export default function WorkflowDiagram({
         steps: processWorkflow(t.workflows.contract.steps),
       },
     };
-  }, [t.workflows]);
+  }, [t.workflows, workflowData]);
 
-  const currentWorkflow =
-    workflows[processType as keyof typeof workflows] || workflows.general;
+  const currentWorkflow = workflowData
+    ? workflows.dynamic
+    : workflows[processType as keyof typeof workflows] || workflows.general;
+
+  // Safety check - should never happen but makes TypeScript happy
+  if (!currentWorkflow) {
+    return <div>Loading workflow...</div>;
+  }
 
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
@@ -1425,7 +1461,7 @@ export default function WorkflowDiagram({
       const phaseSteps = steps.filter((step) => step.phase === phase);
       return phaseSteps.every((step) => completedSteps.has(step.id));
     },
-    [completedSteps]
+    [completedSteps],
   );
 
   // Helper function to check if a node should be disabled
@@ -1441,7 +1477,7 @@ export default function WorkflowDiagram({
       }
       return false;
     },
-    [isPhaseCompleted]
+    [isPhaseCompleted],
   );
 
   const handleStepToggle = useCallback((stepId: string, completed: boolean) => {
@@ -1480,7 +1516,7 @@ export default function WorkflowDiagram({
       isNodeDisabled,
       handleStepToggle,
       t.completed,
-    ]
+    ],
   );
 
   const initialEdges: Edge[] = useMemo(() => {
@@ -1488,11 +1524,14 @@ export default function WorkflowDiagram({
     const steps = currentWorkflow.steps;
 
     // Group steps by phase
-    const phaseGroups = steps.reduce((acc, step) => {
-      if (!acc[step.phase]) acc[step.phase] = [];
-      acc[step.phase].push(step);
-      return acc;
-    }, {} as Record<number, ProcessedStep[]>);
+    const phaseGroups = steps.reduce(
+      (acc, step) => {
+        if (!acc[step.phase]) acc[step.phase] = [];
+        acc[step.phase].push(step);
+        return acc;
+      },
+      {} as Record<number, ProcessedStep[]>,
+    );
 
     const phases = Object.keys(phaseGroups)
       .map(Number)
@@ -1536,10 +1575,14 @@ export default function WorkflowDiagram({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update workflow when language or processType changes
+  // Update workflow when language, processType, or workflowData changes
   React.useEffect(() => {
-    const newWorkflow =
-      workflows[processType as keyof typeof workflows] || workflows.general;
+    const newWorkflow = workflowData
+      ? workflows.dynamic
+      : workflows[processType as keyof typeof workflows] || workflows.general;
+
+    // Safety check
+    if (!newWorkflow) return;
 
     // Update nodes
     const newNodes = newWorkflow.steps.map((step) => ({
@@ -1565,11 +1608,14 @@ export default function WorkflowDiagram({
     const steps = newWorkflow.steps;
 
     // Group steps by phase
-    const phaseGroups = steps.reduce((acc, step) => {
-      if (!acc[step.phase]) acc[step.phase] = [];
-      acc[step.phase].push(step);
-      return acc;
-    }, {} as Record<number, ProcessedStep[]>);
+    const phaseGroups = steps.reduce(
+      (acc, step) => {
+        if (!acc[step.phase]) acc[step.phase] = [];
+        acc[step.phase].push(step);
+        return acc;
+      },
+      {} as Record<number, ProcessedStep[]>,
+    );
 
     const phases = Object.keys(phaseGroups)
       .map(Number)
@@ -1611,6 +1657,7 @@ export default function WorkflowDiagram({
   }, [
     currentLanguage,
     processType,
+    workflowData,
     completedSteps,
     workflows,
     handleStepToggle,
@@ -1627,22 +1674,30 @@ export default function WorkflowDiagram({
         const step = currentWorkflow.steps.find((s) => s.id === node.id);
         if (!step) return node;
 
-        // Count total number of completed phases
-        const maxPhase = Math.max(...currentWorkflow.steps.map((s) => s.phase));
-        let totalCompletedPhases = 0;
-        for (let phase = 1; phase <= maxPhase; phase++) {
+        const isCurrentPhaseCompleted = isPhaseCompleted(
+          step.phase,
+          currentWorkflow.steps,
+        );
+
+        // Count how many phases before this one are completed
+        let completedPhasesBefore = 0;
+        for (let phase = 1; phase < step.phase; phase++) {
           if (isPhaseCompleted(phase, currentWorkflow.steps)) {
-            totalCompletedPhases++;
+            completedPhasesBefore++;
           }
         }
 
-        // Move completed phases AND the immediate next phase together
-        // If this node's phase is completed OR it's the next phase after completed ones
-        const isNextPhaseAfterCompleted =
-          step.phase <= totalCompletedPhases + 1;
-        const xOffset = isNextPhaseAfterCompleted
-          ? -totalCompletedPhases * 180
-          : 0;
+        // Shift left by the number of completed phases * phase spacing
+        const phaseSpacing = 350;
+        let xOffset;
+
+        if (isCurrentPhaseCompleted) {
+          // Move completed phases far to the left (off-screen)
+          xOffset = -1000 - completedPhasesBefore * 100;
+        } else {
+          // Move active/upcoming phases left based on completed phases
+          xOffset = -completedPhasesBefore * phaseSpacing;
+        }
 
         return {
           ...node,
@@ -1657,7 +1712,7 @@ export default function WorkflowDiagram({
             completedText: t.completed,
           },
         };
-      })
+      }),
     );
   }, [
     completedSteps,
@@ -1687,15 +1742,116 @@ export default function WorkflowDiagram({
             strokeWidth: 2,
           },
         };
-      })
+      }),
     );
   }, [completedSteps, setEdges]);
 
   const progressPercentage =
     (completedSteps.size / currentWorkflow.steps.length) * 100;
 
+  const [showResources, setShowResources] = useState(false);
+
   return (
-    <div className="border-2 border-gray-300 rounded-lg bg-gray-50 p-4 mt-4">
+    <div className="border-2 border-border rounded-base bg-white shadow-shadow p-4 mt-4">
+      {/* Resource Information Bar */}
+      <div className="mb-4 border-2 border-border rounded-base bg-bg p-4">
+        <button
+          onClick={() => setShowResources(!showResources)}
+          className="flex items-center justify-between w-full text-left hover:opacity-80 transition-opacity"
+        >
+          <h4 className="font-heading text-base text-text">
+            Important Resources & Information
+          </h4>
+          <span className="text-text font-bold">
+            {showResources ? "▼" : "▶"}
+          </span>
+        </button>
+
+        {showResources && (
+          <div className="mt-4 space-y-3">
+            {/* Cybercrime Portal */}
+            <div className="border-2 border-border rounded-base bg-white p-3">
+              <h5 className="font-heading text-sm text-text mb-2">
+                File Cybercrime Complaint Online
+              </h5>
+              <a
+                href="https://cybercrime.gov.in/Webform/Crime_AuthoLogin.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-main hover:underline break-all text-sm"
+              >
+                https://cybercrime.gov.in/Webform/Crime_AuthoLogin.aspx
+              </a>
+            </div>
+
+            {/* Checklist */}
+            <div className="border-2 border-border rounded-base bg-white p-3">
+              <h5 className="font-heading text-sm text-text mb-2">
+                Checklist Before Filing Complaint
+              </h5>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <p className="font-semibold text-text">
+                    Mandatory Information:
+                  </p>
+                  <ul className="list-disc list-inside ml-2 text-text/80 space-y-1 mt-1">
+                    <li>Incident Date and Time</li>
+                    <li>
+                      Incident details (min 200 characters, no special
+                      characters)
+                    </li>
+                    <li>
+                      National ID (Voter/Driving License/Passport/PAN/Aadhaar) -
+                      JPEG/PNG, max 5MB
+                    </li>
+                    <li>
+                      For financial fraud:
+                      <ul className="list-circle list-inside ml-4 mt-1">
+                        <li>Bank/Wallet/Merchant name</li>
+                        <li>12-digit Transaction ID/UTR No.</li>
+                        <li>Transaction date</li>
+                        <li>Fraud amount</li>
+                      </ul>
+                    </li>
+                    <li>Relevant evidence documents (max 10MB each)</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold text-text mt-2">
+                    Optional Information:
+                  </p>
+                  <ul className="list-disc list-inside ml-2 text-text/80 space-y-1 mt-1">
+                    <li>Suspected website URLs/Social Media handles</li>
+                    <li>
+                      Suspect details (Mobile/Email/Bank Account/Address/Photo)
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Lawyer Contact */}
+            <div className="border-2 border-border rounded-base bg-white p-3">
+              <h5 className="font-heading text-sm text-text mb-2">
+                Legal Assistance
+              </h5>
+              <p className="text-text/80 text-sm mb-3">
+                Need help with your case?
+              </p>
+              <a
+                href="https://api.whatsapp.com/send/?phone=918530076989"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-main text-main-foreground border-2 border-border rounded-base px-4 py-2 font-heading text-sm hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-shadow transition-all"
+              >
+                <span>Contact Lawyer via WhatsApp</span>
+                <span>(+91 85300 76989)</span>
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-800">
           {currentWorkflow.title}
