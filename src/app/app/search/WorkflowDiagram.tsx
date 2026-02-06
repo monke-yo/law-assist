@@ -1444,14 +1444,9 @@ export default function WorkflowDiagram({
     };
   }, [t.workflows, workflowData]);
 
-  const currentWorkflow = workflowData
+  const currentWorkflow = ((workflowData
     ? workflows.dynamic
-    : workflows[processType as keyof typeof workflows] || workflows.general;
-
-  // Safety check - should never happen but makes TypeScript happy
-  if (!currentWorkflow) {
-    return <div>Loading workflow...</div>;
-  }
+    : workflows[processType as keyof typeof workflows]) || workflows.general)!;
 
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
