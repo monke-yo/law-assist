@@ -20,6 +20,8 @@ export default function ChatUI({
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<unknown>(null);
   const hasStartedRef = useRef(false);
+  const sttBaseQueryRef = useRef("");
+  const sttFinalTranscriptRef = useRef("");
   interface WorkflowData {
     title: string;
     steps: {
@@ -143,6 +145,10 @@ export default function ChatUI({
 
     const recognition = new SpeechRecognition();
 
+    // Preserve existing input and build live transcript on top of it.
+    sttBaseQueryRef.current = query;
+    sttFinalTranscriptRef.current = "";
+
     // CRITICAL: Set properties BEFORE adding event handlers
     const langMap: Record<string, string> = {
       en: "en-US",
@@ -170,18 +176,26 @@ export default function ChatUI({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       console.log("📝 RESULT!");
-      let finalTranscript = "";
+      let interimTranscript = "";
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
+        const transcript = result[0].transcript;
+
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + " ";
-          console.log("✅ Final:", result[0].transcript);
+          sttFinalTranscriptRef.current += transcript + " ";
+          console.log("✅ Final:", transcript);
+        } else {
+          interimTranscript += transcript;
         }
       }
 
-      if (finalTranscript) {
-        setQuery((prev) => (prev + " " + finalTranscript).trim());
-      }
+      const liveTranscript =
+        `${sttBaseQueryRef.current} ${sttFinalTranscriptRef.current} ${interimTranscript}`
+          .replace(/\s+/g, " ")
+          .trim();
+
+      setQuery(liveTranscript);
     };
 
     recognition.onaudiostart = () => {
@@ -277,9 +291,29 @@ export default function ChatUI({
     }
   };
 
+  const stopSpeechRecognition = () => {
+    console.log("🛑 Stopping recognition");
+    if (recognitionRef.current) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (recognitionRef.current as any).stop();
+      } catch (e) {
+        console.error("Error stopping:", e);
+      }
+    }
+    hasStartedRef.current = false;
+    setIsRecording(false);
+    recognitionRef.current = null;
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
+
+    // If user submits while recording, stop STT and return icon to microphone.
+    if (isRecording) {
+      stopSpeechRecognition();
+    }
 
     setLoading(true);
     if (!hasSearched) {
@@ -306,13 +340,13 @@ export default function ChatUI({
 
     if (data.ok) {
       setHistory((prev) => [
-        ...prev,
         { role: "human", content: query },
         {
           role: "ai",
           content: data.reply,
           workflow: data.workflow,
         },
+        ...prev,
       ]);
     }
 
@@ -359,17 +393,7 @@ export default function ChatUI({
               type="button"
               onClick={() => {
                 if (isRecording) {
-                  console.log("🛑 Stopping recognition");
-                  if (recognitionRef.current) {
-                    try {
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (recognitionRef.current as any).stop();
-                    } catch (e) {
-                      console.error("Error stopping:", e);
-                    }
-                  }
-                  setIsRecording(false);
-                  recognitionRef.current = null;
+                  stopSpeechRecognition();
                 } else {
                   startSpeechRecognition();
                 }

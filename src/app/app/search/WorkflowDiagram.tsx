@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import {
   ReactFlow,
+  ReactFlowInstance,
   Node,
   Edge,
   Background,
@@ -1366,6 +1367,10 @@ export default function WorkflowDiagram({
   processType = "general",
   workflowData,
 }: WorkflowDiagramProps) {
+  const VIEWPORT_ZOOM = 0.95;
+  const NODE_CENTER_X = 130;
+  const NODE_CENTER_Y = 70;
+
   const { currentLanguage } = useLanguage();
   const t = translations[currentLanguage];
 
@@ -1449,6 +1454,13 @@ export default function WorkflowDiagram({
     : workflows[processType as keyof typeof workflows]) || workflows.general)!;
 
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
+
+  // Reset completion state for a newly prompted workflow/process.
+  React.useEffect(() => {
+    setCompletedSteps(new Set());
+  }, [processType, workflowData]);
 
   // Helper function to check if all nodes in a phase are completed
   const isPhaseCompleted = useCallback(
@@ -1664,40 +1676,33 @@ export default function WorkflowDiagram({
 
   // Update nodes when completedSteps or language changes
   React.useEffect(() => {
+    const phaseSpacing = 350;
+    const phases = Array.from(
+      new Set(currentWorkflow.steps.map((step) => step.phase)),
+    ).sort((a, b) => a - b);
+
+    // Count consecutively completed phases from the start.
+    // This keeps all completed layers moving left together as progress advances.
+    let completedPhaseCount = 0;
+    for (const phase of phases) {
+      if (isPhaseCompleted(phase, currentWorkflow.steps)) {
+        completedPhaseCount++;
+      } else {
+        break;
+      }
+    }
+
+    const globalXOffset = -completedPhaseCount * phaseSpacing;
+
     setNodes((prevNodes) =>
       prevNodes.map((node) => {
         const step = currentWorkflow.steps.find((s) => s.id === node.id);
         if (!step) return node;
 
-        const isCurrentPhaseCompleted = isPhaseCompleted(
-          step.phase,
-          currentWorkflow.steps,
-        );
-
-        // Count how many phases before this one are completed
-        let completedPhasesBefore = 0;
-        for (let phase = 1; phase < step.phase; phase++) {
-          if (isPhaseCompleted(phase, currentWorkflow.steps)) {
-            completedPhasesBefore++;
-          }
-        }
-
-        // Shift left by the number of completed phases * phase spacing
-        const phaseSpacing = 350;
-        let xOffset;
-
-        if (isCurrentPhaseCompleted) {
-          // Move completed phases far to the left (off-screen)
-          xOffset = -1000 - completedPhasesBefore * 100;
-        } else {
-          // Move active/upcoming phases left based on completed phases
-          xOffset = -completedPhasesBefore * phaseSpacing;
-        }
-
         return {
           ...node,
           position: {
-            x: step.position.x + xOffset,
+            x: step.position.x + globalXOffset,
             y: step.position.y,
           },
           data: {
@@ -1716,6 +1721,55 @@ export default function WorkflowDiagram({
     isPhaseCompleted,
     setNodes,
     t.completed,
+  ]);
+
+  // Keep camera focused on the next actionable node at a consistent zoom level.
+  React.useEffect(() => {
+    if (!reactFlowInstance || currentWorkflow.steps.length === 0) return;
+
+    const orderedSteps = [...currentWorkflow.steps].sort((a, b) => {
+      if (a.phase !== b.phase) return a.phase - b.phase;
+      return a.parallel - b.parallel;
+    });
+
+    const nextStep = orderedSteps.find(
+      (step) =>
+        !completedSteps.has(step.id) &&
+        !isNodeDisabled(step.phase, currentWorkflow.steps),
+    );
+
+    if (!nextStep) return;
+
+    const phases = Array.from(
+      new Set(currentWorkflow.steps.map((step) => step.phase)),
+    ).sort((a, b) => a - b);
+
+    let completedPhaseCount = 0;
+    for (const phase of phases) {
+      if (isPhaseCompleted(phase, currentWorkflow.steps)) {
+        completedPhaseCount++;
+      } else {
+        break;
+      }
+    }
+
+    const phaseSpacing = 350;
+    const globalXOffset = -completedPhaseCount * phaseSpacing;
+
+    reactFlowInstance.setCenter(
+      nextStep.position.x + globalXOffset + NODE_CENTER_X,
+      nextStep.position.y + NODE_CENTER_Y,
+      {
+        zoom: VIEWPORT_ZOOM,
+        duration: 450,
+      },
+    );
+  }, [
+    reactFlowInstance,
+    currentWorkflow.steps,
+    completedSteps,
+    isNodeDisabled,
+    isPhaseCompleted,
   ]);
 
   // Update edges when completedSteps changes
@@ -1743,6 +1797,9 @@ export default function WorkflowDiagram({
 
   const progressPercentage =
     (completedSteps.size / currentWorkflow.steps.length) * 100;
+  const isWorkflowCompleted =
+    currentWorkflow.steps.length > 0 &&
+    completedSteps.size === currentWorkflow.steps.length;
 
   const [showResources, setShowResources] = useState(false);
 
@@ -1865,21 +1922,36 @@ export default function WorkflowDiagram({
         </div>
       </div>
 
-      <div style={{ height: "700px", width: "100%" }}>
+      <div className="relative" style={{ height: "700px", width: "100%" }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          onInit={setReactFlowInstance}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          defaultViewport={{ x: 100, y: 50, zoom: 1 }}
+          defaultViewport={{ x: 100, y: 50, zoom: VIEWPORT_ZOOM }}
           minZoom={0.5}
           maxZoom={2}
         >
           <Background color="#f3f4f6" gap={20} />
           <Controls />
         </ReactFlow>
+
+        {isWorkflowCompleted && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/35 backdrop-blur-[1px]">
+            <div className="w-[min(92%,560px)] rounded-[28px] border-2 border-green-500 bg-green-100/95 px-8 py-7 text-center shadow-lg">
+              <h4 className="text-5xl font-bold leading-tight text-green-900">
+                Completed
+              </h4>
+              <p className="mt-3 text-base font-medium text-green-800">
+                Great work. You completed every step in this workflow.
+              </p>
+              <div className="mt-2 text-4xl text-green-700">✓</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 text-xs text-gray-500">{t.helpText}</div>
